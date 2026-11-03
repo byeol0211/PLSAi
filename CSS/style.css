@@ -90,3 +90,30 @@ body{background:#fff}
 @media(min-width:600px){.app{box-shadow:0 10px 36px #28324a12}}
 @media(max-width:370px){.chat-heading{flex-wrap:wrap}.chat-heading .tag{margin-left:0}.home-overview>div{padding:14px 11px}}
 
+
+
+/* Android phone responsive layout */
+html,body{width:100%;min-height:100%;overflow-x:hidden}
+.app{width:100%;max-width:none;height:100dvh;min-height:0;margin:0;border-radius:0}
+.top{min-height:44px;height:44px;padding:0 16px}
+.brand{font-size:17px;line-height:1}
+.main{padding:16px 14px 28px}
+.bottom{height:64px}
+.bottom button{min-width:0}
+.page h1{font-size:22px}
+.hero-title{margin-bottom:8px}
+.section-row{margin-top:14px;margin-bottom:9px}
+.calendar-card{margin-top:8px;margin-bottom:18px}
+.cal-top{margin:6px 0 10px}
+.cal-day{min-height:44px;padding:6px 1px}
+.home-overview{margin:12px 0 16px}
+@media (min-width:600px){
+  body{background:#f5f6fa}
+  .app{max-width:none;box-shadow:none}
+}
+@media (max-width:360px){
+  .main{padding:14px 10px 24px}
+  .cal-day{min-height:40px}
+  .top{padding:0 12px}
+  .home-overview{gap:7px}
+}
