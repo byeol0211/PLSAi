@@ -157,6 +157,59 @@ renderDetail = function () {
 };
 
 let examRequest = 0;
+let eventDateRequest=0, eventDateRevision=0;
+$('eventDate').insertAdjacentHTML('beforebegin','<div id="officialEventDateControls" class="hide"><label class="field" for="officialEventDate">공식 일정 선택</label><select class="input hide" id="officialEventDate"></select><p class="small-muted" id="officialEventDateStatus" role="status"></p></div>');
+$('eventDate').addEventListener('input',()=>{eventDateRevision++;});
+$('officialEventDate').addEventListener('change',()=>{eventDateRevision++;$('eventDate').value=$('officialEventDate').value;});
+function officialDate(value) {
+  const text=String(value||'');
+  const iso=/^\d{8}$/.test(text)?`${text.slice(0,4)}-${text.slice(4,6)}-${text.slice(6,8)}`:text;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return '';
+  const date=new Date(iso+'T00:00:00Z');
+  return !Number.isNaN(date.getTime())&&date.toISOString().slice(0,10)===iso?iso:'';
+}
+const originalOpenEvent=openEvent;
+openEvent=async function(itemId) {
+  const request=++eventDateRequest, revision=eventDateRevision;
+  originalOpenEvent(itemId);
+  const item=catalog.find(x=>x.id===itemId), controls=$('officialEventDateControls'), select=$('officialEventDate'), status=$('officialEventDateStatus');
+  controls.classList.toggle('hide',!item); select.classList.add('hide');select.replaceChildren();
+  if(!item) return;
+  $('eventDate').value='';
+  if(item.kind==='comp') {
+    const date=officialDate(item.deadline);$('eventDate').value=date;
+    status.textContent=date?'공모전 접수 마감일을 기본으로 입력했습니다. 날짜는 변경할 수 있어요.':'공식 마감일이 없어 날짜를 직접 입력해 주세요.';
+    return;
+  }
+  status.textContent='공식 시험일을 확인하고 있습니다. 날짜를 직접 입력하면 입력한 값을 유지합니다.';
+  const now=new Date(),today=dateKey(now.getFullYear(),now.getMonth(),now.getDate());
+  try {
+    let dates=[];
+    for(const year of [now.getFullYear(),now.getFullYear()+1]) {
+      const result=await api(`/api/schedules?jmcd=${encodeURIComponent(item.jmcd)}&year=${year}&category=${encodeURIComponent(item.qualgbcd||'')}`);
+      if(request!==eventDateRequest||page!=='event'||editingId) return;
+      for(const row of result.items) for(const [prefix,label] of [['doc','필기'],['prac','실기']]) {
+        const date=officialDate(row[prefix+'ExamStartDt']);
+        if(date&&date>=today) dates.push({date,label:`${row.implSeq||''}회 ${label} 시험 · ${date}`});
+      }
+      if(dates.length) break;
+    }
+    dates.sort((a,b)=>a.date.localeCompare(b.date));
+    if(!dates.length) {status.textContent='올해·내년의 예정된 공식 시험일이 없습니다. 날짜를 직접 입력해 주세요.';return;}
+    select.replaceChildren(...dates.map(x=>new Option(x.label,x.date)));
+    select.classList.remove('hide');
+    if(eventDateRevision===revision&&!$('eventDate').value) {
+      $('eventDate').value=dates[0].date;
+      status.textContent='가장 가까운 시험 시작일을 입력했습니다. 회차·필기·실기를 선택하거나 날짜를 수정할 수 있어요.';
+    } else status.textContent='직접 입력한 날짜를 유지했습니다. 공식 일정도 선택할 수 있어요.';
+  } catch(error) {
+    if(request===eventDateRequest&&page==='event'&&!editingId) status.textContent='공식 시험일을 불러오지 못했습니다. 날짜를 직접 입력해 주세요.';
+  }
+};
+const originalEditEvent=editEvent;
+editEvent=function(id) {eventDateRequest++;$('officialEventDateControls').classList.add('hide');originalEditEvent(id);};
+const originalEditSelectedSchedule=editSelectedSchedule;
+editSelectedSchedule=function() {eventDateRequest++;$('officialEventDateControls').classList.add('hide');originalEditSelectedSchedule();};
 async function loadExams(item, token) {
   const request = ++examRequest;
   $('officialExams').textContent = '시험일정을 불러오는 중입니다.';
