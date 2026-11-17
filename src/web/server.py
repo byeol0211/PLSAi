@@ -107,7 +107,7 @@ def public_config() -> dict:
 def contests():
     with service_transaction() as conn:
         rows = conn.execute("""select id,title,organizer,categories,status,source_url,
-            start_date,end_date,description,eligibility,prizes,image_url
+            start_date,end_date,description,eligibility,prizes,image_url,created_at
             from public.contests order by end_date asc nulls last,id limit 1000""").fetchall()
     return {"items": rows}
 

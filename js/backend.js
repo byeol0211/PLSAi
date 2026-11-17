@@ -97,11 +97,11 @@ async function loadContests() {
     const rows=result.items.map(x=>({id:'contest-'+x.id,kind:'comp',real:true,title:x.title,
       categories:x.categories?.length?x.categories:['기타'],category:(x.categories||[]).join(' · ')||'기타',organizer:x.organizer,status:x.status,
       description:x.description||'상세 설명이 제공되지 않았습니다.',eligibility:x.eligibility||'공식 모집 안내를 확인해 주세요.',
-      imageUrl:contestUrl(x.image_url),prizes:x.prizes,deadline:x.end_date||'미정',startDate:x.start_date,exam:x.end_date||'미정',url:contestUrl(x.source_url)}));
+      createdAt:x.created_at,sourceId:String(x.id),imageUrl:contestUrl(x.image_url),prizes:x.prizes,deadline:x.end_date||'미정',startDate:x.start_date,exam:x.end_date||'미정',url:contestUrl(x.source_url)}));
     const certifications=catalog.filter(x=>x.kind==='cert');
     catalog.splice(0,catalog.length,...certifications,...rows); populateContestFilters(); contestState='ready';
   } catch(error) { contestState='error'; contestError=error.message; }
-  if(category==='comp') renderExplore(); if(page==='mypage') renderMyPage();
+  if(category==='comp') renderExplore(); if(page==='mypage') renderMyPage(); if(page==='home') renderHome();
 }
 
 async function api(path) {
@@ -174,22 +174,20 @@ const prototypeHome = renderHome;
 renderHome = function () {
   prototypeHome();
   const grid = document.querySelector('.home-discover-grid');
-  if (catalogState !== 'ready') {
-    grid.innerHTML = catalogState === 'loading' ? '<p role="status">자격증을 불러오는 중입니다.</p>' : '<button class="btn alt small" onclick="loadCertifications()">다시 시도</button>';
-    return;
+  const card=(item,label)=>`<button type="button" class="home-discover-card" onclick="openDetail('${item.id}','home')"><span class="home-discover-kind">${label}</span><strong>${escapeHTML(item.title)}</strong><span class="home-discover-foot">${item.kind==='comp'?'접수 마감: '+escapeHTML(item.deadline):'자세히 보기'} <b aria-hidden="true">›</b></span></button>`;
+  const certifications=catalog.filter(x=>x.live && x.kind==='cert');
+  const selected=[];
+  for(const name of ['정보처리기사','산업안전기사','전기기사']) {
+    const item=certifications.find(x=>x.title===name); if(item) selected.push(item);
   }
-  const certifications = catalog.filter(x => x.live);
-  const selected = [];
-  const fields = new Set();
-  for (const item of certifications) {
-    if (selected.length === 6) break;
-    if (!fields.has(item.field)) { selected.push(item); fields.add(item.field); }
-  }
-  for (const item of certifications) {
-    if (selected.length === 6) break;
-    if (!selected.includes(item)) selected.push(item);
-  }
-  grid.innerHTML = selected.map(x => `<button type="button" class="home-discover-card" onclick="openDetail('${x.id}','home')"><span class="home-discover-kind">${escapeHTML(x.qualification)}</span><strong>${escapeHTML(x.title)}</strong><span class="home-discover-foot">자세히 보기 <b aria-hidden="true">›</b></span></button>`).join('');
+  for(const item of certifications) { if(selected.length===3) break; if(!selected.includes(item)) selected.push(item); }
+  const newest=catalog.filter(x=>x.kind==='comp').sort((a,b)=>
+    (Date.parse(b.createdAt)||0)-(Date.parse(a.createdAt)||0)||b.sourceId.localeCompare(a.sourceId,undefined,{numeric:true})).slice(0,3);
+  const stateMessage=(state,retry,label)=>state==='loading'?`<p class="home-discover-status" role="status">${label} 불러오는 중입니다.</p>`:state==='error'?`<button class="btn alt small" onclick="${retry}()">${label} 다시 불러오기</button>`:'<p class="home-discover-status">등록된 항목이 없습니다.</p>';
+  grid.innerHTML='<h3 class="home-discover-group">추천 자격증</h3>'+
+    (catalogState==='ready'&&selected.length?selected.map(x=>card(x,'추천 자격증')).join(''):stateMessage(catalogState,'loadCertifications','자격증'))+
+    '<h3 class="home-discover-group">최근 등록된 공모전</h3>'+
+    (contestState==='ready'&&newest.length?newest.map(x=>card(x,'새 공모전')).join(''):stateMessage(contestState,'loadContests','공모전'));
 };
 loadCertifications();
 loadContests();
