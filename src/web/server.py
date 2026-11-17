@@ -72,6 +72,11 @@ def api_items() -> JSONResponse:
     return legacy_response(load_items())
 
 
+@app.get("/healthz", include_in_schema=False)
+def healthcheck():
+    return {"status": "ok"}
+
+
 @app.get("/api/details")
 def api_details(jmcd: str = "") -> JSONResponse:
     try:
