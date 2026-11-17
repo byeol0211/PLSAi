@@ -184,9 +184,8 @@ renderHome = function () {
   const newest=catalog.filter(x=>x.kind==='comp').sort((a,b)=>
     (Date.parse(b.createdAt)||0)-(Date.parse(a.createdAt)||0)||b.sourceId.localeCompare(a.sourceId,undefined,{numeric:true})).slice(0,3);
   const stateMessage=(state,retry,label)=>state==='loading'?`<p class="home-discover-status" role="status">${label} 불러오는 중입니다.</p>`:state==='error'?`<button class="btn alt small" onclick="${retry}()">${label} 다시 불러오기</button>`:'<p class="home-discover-status">등록된 항목이 없습니다.</p>';
-  grid.innerHTML='<h3 class="home-discover-group">추천 자격증</h3>'+
+  grid.innerHTML=
     (catalogState==='ready'&&selected.length?selected.map(x=>card(x,'추천 자격증')).join(''):stateMessage(catalogState,'loadCertifications','자격증'))+
-    '<h3 class="home-discover-group">최근 등록된 공모전</h3>'+
     (contestState==='ready'&&newest.length?newest.map(x=>card(x,'새 공모전')).join(''):stateMessage(contestState,'loadContests','공모전'));
 };
 loadCertifications();
