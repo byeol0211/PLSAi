@@ -81,9 +81,12 @@ renderExplore = function () {
   const field=$('contestCategoryFilter').value;
   const contests=catalog.filter(x=>x.kind==='comp' && (!field||x.categories.includes(field)) && `${x.title} ${x.category} ${x.organizer} ${x.description}`.toLocaleLowerCase('ko').includes(query));
   $('contestCount').textContent=`${contests.length}개 공모전`;
-  $('exploreResults').innerHTML=contests.length?contests.map(x=>`<article class="card"><span class="tag">공모전</span> <span class="tag gray">${escapeHTML(x.category)}</span><h3>${escapeHTML(x.title)}</h3><p>${escapeHTML(x.organizer||'주최기관 미제공')}</p><p>접수 마감: ${escapeHTML(x.deadline)}</p><p>${escapeHTML(x.status||'')}</p>${catalogActions(x)}</article>`).join(''):'<div class="empty">조건에 맞는 공모전이 없어요.</div>';
+  $('exploreResults').innerHTML=contests.length?contests.map(x=>`<article class="card">${contestImage(x)}<span class="tag">공모전</span> <span class="tag gray">${escapeHTML(x.category)}</span><h3>${escapeHTML(x.title)}</h3><p>${escapeHTML(x.organizer||'주최기관 미제공')}</p><p>접수 마감: ${escapeHTML(x.deadline)}</p><p>${escapeHTML(x.status||'')}</p>${catalogActions(x)}</article>`).join(''):'<div class="empty">조건에 맞는 공모전이 없어요.</div>';
 };
 
+function contestImage(item, detail=false) {
+  return item.imageUrl?`<img class="contest-image${detail?' contest-image-detail':''}" src="${escapeHTML(item.imageUrl)}" alt="${escapeHTML(item.title)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()"/>`:'';
+}
 function contestUrl(value) {
   try { const url=new URL(value); return ['https:','http:'].includes(url.protocol)?url.href:''; } catch(_) { return ''; }
 }
@@ -94,7 +97,7 @@ async function loadContests() {
     const rows=result.items.map(x=>({id:'contest-'+x.id,kind:'comp',real:true,title:x.title,
       categories:x.categories?.length?x.categories:['기타'],category:(x.categories||[]).join(' · ')||'기타',organizer:x.organizer,status:x.status,
       description:x.description||'상세 설명이 제공되지 않았습니다.',eligibility:x.eligibility||'공식 모집 안내를 확인해 주세요.',
-      prizes:x.prizes,deadline:x.end_date||'미정',startDate:x.start_date,exam:x.end_date||'미정',url:contestUrl(x.source_url)}));
+      imageUrl:contestUrl(x.image_url),prizes:x.prizes,deadline:x.end_date||'미정',startDate:x.start_date,exam:x.end_date||'미정',url:contestUrl(x.source_url)}));
     const certifications=catalog.filter(x=>x.kind==='cert');
     catalog.splice(0,catalog.length,...certifications,...rows); populateContestFilters(); contestState='ready';
   } catch(error) { contestState='error'; contestError=error.message; }
@@ -137,11 +140,11 @@ renderDetail = function () {
   prototypeDetail();
   const item = catalog.find(x => x.id === selectedId);
   if(item?.real && item.kind==='comp') {
-    $('detailContent').innerHTML=`<div class="card"><span class="tag">공모전</span><h1>${escapeHTML(item.title)}</h1><p>${escapeHTML(item.category)}</p><h2>주최기관</h2><p>${escapeHTML(item.organizer||'미제공')}</p><h2>접수 기간</h2><p>${escapeHTML(item.startDate||'미정')} ~ ${escapeHTML(item.deadline)}</p><p>${escapeHTML(item.status||'')}</p><h2>상세 안내</h2><p style="white-space:pre-wrap">${escapeHTML(item.description)}</p><h2>참가 조건</h2><p style="white-space:pre-wrap">${escapeHTML(item.eligibility)}</p><h2>시상 내역</h2><p style="white-space:pre-wrap">${escapeHTML(item.prizes||'공식 모집 안내를 확인해 주세요.')}</p>${item.url?`<a class="link" href="${escapeHTML(item.url)}" target="_blank" rel="noopener noreferrer">모집 원문 확인 ↗</a>`:''}</div>`;
+    $('detailContent').innerHTML=`<div class="card">${contestImage(item,true)}<span class="tag">공모전</span><h1>${escapeHTML(item.title)}</h1><p>${escapeHTML(item.category)}</p><h2>주최기관</h2><p>${escapeHTML(item.organizer||'미제공')}</p><h2>접수 기간</h2><p>${escapeHTML(item.startDate||'미정')} ~ ${escapeHTML(item.deadline)}</p><p>${escapeHTML(item.status||'')}</p><h2>상세 안내</h2><p style="white-space:pre-wrap">${escapeHTML(item.description)}</p><h2>참가 조건</h2><p style="white-space:pre-wrap">${escapeHTML(item.eligibility)}</p><h2>시상 내역</h2><p style="white-space:pre-wrap">${escapeHTML(item.prizes||'공식 모집 안내를 확인해 주세요.')}</p>${item.url?`<a class="link" href="${escapeHTML(item.url)}" target="_blank" rel="noopener noreferrer">모집 원문 확인 ↗</a>`:''}</div>`;
     return;
   }
   if (!item?.live) return;
-  $('detailContent').innerHTML = `<div class="card"><span class="tag">공식 API</span><h1>${escapeHTML(item.title)}</h1><p>${escapeHTML(item.category)}</p><a class="link" href="https://www.q-net.or.kr/" target="_blank" rel="noopener noreferrer">공식 안내 사이트 ↗</a></div>`;
+  $('detailContent').innerHTML = `<div class="card">${contestImage(item,true)}<span class="tag">공식 API</span><h1>${escapeHTML(item.title)}</h1><p>${escapeHTML(item.category)}</p><a class="link" href="https://www.q-net.or.kr/" target="_blank" rel="noopener noreferrer">공식 안내 사이트 ↗</a></div>`;
   $('detailContent').insertAdjacentHTML('beforeend', '<div class="card" id="officialDetails" role="status">상세정보를 불러오는 중입니다.</div><div class="card"><h2>시험일정</h2><label for="examYear">연도</label><select class="input" id="examYear"></select><div id="officialExams" role="status"></div></div>');
   const year = new Date().getFullYear();
   for (let value = year - 1; value <= year + 1; value++) $('examYear').add(new Option(value + '년', value, false, value === year));

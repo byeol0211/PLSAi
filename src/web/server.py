@@ -56,7 +56,7 @@ async def security_headers(request: Request, call_next):
     response = await call_next(request)
     response.headers["Cache-Control"] = "no-store"
     response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'"
+    response.headers["Content-Security-Policy"] = "default-src 'self'; img-src 'self' https: http:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'"
     return response
 
 
@@ -107,7 +107,7 @@ def public_config() -> dict:
 def contests():
     with service_transaction() as conn:
         rows = conn.execute("""select id,title,organizer,categories,status,source_url,
-            start_date,end_date,description,eligibility,prizes
+            start_date,end_date,description,eligibility,prizes,image_url
             from public.contests order by end_date asc nulls last,id limit 1000""").fetchall()
     return {"items": rows}
 
